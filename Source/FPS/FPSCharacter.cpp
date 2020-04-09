@@ -9,6 +9,8 @@
 #include "GameFramework/Controller.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/ArrowComponent.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 #include "UnrealEngine.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,6 +52,39 @@ AFPSCharacter::AFPSCharacter()
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
+void AFPSCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	GetWorldTimerManager().SetTimer(ArmourDelay, this, &AFPSCharacter::RegenerateArmour,  ArmourRegenerationDelay, true);
+}
+
+void AFPSCharacter::RegenerateArmour()
+{
+	regeneratingArmour = true;
+}
+
+void AFPSCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (regeneratingArmour && Armour < 1.f) {
+		Armour = FMath::Clamp(Armour += DeltaSeconds * 0.1f , 0.f, 1.f);
+	}
+	if (GEngine)
+		GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Red, FString::Printf(TEXT("%f"), Armour), true);
+}
+
+void AFPSCharacter::LoseHealth(float Value)
+{
+	regeneratingArmour = false;
+	GetWorldTimerManager().SetTimer(ArmourDelay, this, &AFPSCharacter::RegenerateArmour, ArmourRegenerationDelay, true);
+	float temp = Armour;
+	Armour = FMath::Clamp(Armour -= Value, 0.f, 1.f);
+	if (Armour == 0) {
+		Value -= temp;
+		Health -= Value;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -79,7 +114,6 @@ void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AFPSCharacter::OnResetVR);
 }
 
-
 void AFPSCharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
@@ -87,12 +121,12 @@ void AFPSCharacter::OnResetVR()
 
 void AFPSCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		Jump();
+	Jump();
 }
 
 void AFPSCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
-		StopJumping();
+	StopJumping();
 }
 
 void AFPSCharacter::TurnAtRate(float Rate)

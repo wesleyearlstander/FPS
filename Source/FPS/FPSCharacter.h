@@ -25,11 +25,17 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	UPROPERTY(EditAnywhere, Category = Stats)
-	float Armour = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Stats)
+	float Armour = 0.5f;
 
-	UPROPERTY(EditAnywhere, Category = Stats)
-	float Health = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Stats)
+	float Health = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Stats)
+	float ArmourRegenerationDelay = 3.0f;
+
+	UFUNCTION(BlueprintCallable)
+	void LoseHealth(float Value);
 
 protected:
 
@@ -65,9 +71,17 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void BeginPlay() override;
+
 public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+	FTimerHandle ArmourDelay;
+	void RegenerateArmour();
+	bool regeneratingArmour = false;
 };
 
